@@ -1,0 +1,15 @@
+# Python 虚拟环境
+.venv/
+venv/
+
+# Python 缓存
+__pycache__/
+*.pyc
+
+# Jupyter 缓存
+.ipynb_checkpoints/
+
+# 训练得到的模型权重
+checkpoints/
+*.pt
+*.pth
