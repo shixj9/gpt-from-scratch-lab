@@ -88,6 +88,46 @@ v1 在 v0 的字符级语言模型基础上，引入 **Token Embedding、Positio
 
 以上为各次已记录实验结果；不同版本的模型结构和训练设置存在差异，数据只用于当前学习实验的初步对照。完整 V1 实验配置参见 [`results/v1/metrics.md`](results/v1/metrics.md)，生成样本参见 [`results/v1/sample.txt`](results/v1/sample.txt)。
 
+### v2 — Multi-Head Self-Attention Language Model
+
+**模型简介**
+
+v2 在 v1 单头因果自注意力的基础上引入 **Multi-Head Causal Self-Attention（多头因果自注意力）**。多个 Head 接收同一个 Token 特征序列，但分别使用独立的 Q、K、V 映射，计算各自的注意力权重并聚合上下文，最后沿特征维度拼接输出。
+
+**核心实现**
+
+- **Independent Attention Heads**：使用 `nn.ModuleList` 创建 4 个独立的 `Head`，每个 Head 具有独立的 Q、K、V 可训练参数。
+- **Head Dimension**：输入特征维度 `n_embd=32`，每个 Head 的 `head_size=8`；每个 Head 都读取完整的 32 维输入。
+- **Scaled Dot-Product Attention**：各 Head 独立计算 `Q @ Kᵀ / √dₖ`，再通过因果 Mask 和 Softmax 得到自己的注意力权重。
+- **Value Aggregation**：各 Head 根据自己的注意力权重加权聚合 Value，输出形状为 `(B,T,8)`。
+- **Feature Concatenation**：使用 `torch.cat(..., dim=-1)` 将 4 个 Head 的输出拼接为 `(B,T,32)`，与输入特征维度一致。
+- **Autoregressive Prediction**：保留位置嵌入、`lm_head`、交叉熵训练与逐字符自回归生成流程。
+
+**模型特点**
+
+相较 v1，v2 将一套 32 维单头注意力替换为四套独立的 8 维注意力。不同 Head 可以学习不同的匹配与信息聚合模式；在本实现中拼接后直接送入语言模型输出层，尚未加入额外输出投影、前馈网络、残差连接或 LayerNorm。
+
+**优点**
+
+- 同一个 Token 可通过多个独立的注意力分布整合上下文信息。
+- 多头输出拼接后仍为 32 维，无须修改后续 `lm_head` 的输入维度。
+- 相比 v1，当前实验的训练损失和验证损失均有所下降。
+
+**局限性**
+
+- `block_size=8`，字符级上下文仍较短。
+- 只有一层多头注意力，尚不包含完整 Transformer Block 的前馈网络、残差连接和归一化层。
+- 生成文本虽然出现更多类似单词和句子的片段，但整体语义依然不连贯。
+
+**实验结果**
+
+| Metric | v0 — Bigram | v1 — Single-Head | v2 — Multi-Head |
+|---|---:|---:|---:|
+| Train Loss | 2.4613 | 2.4156 | 2.2213 |
+| Validation Loss | 2.4897 | 2.4231 | 2.2798 |
+
+以上为各版本已记录的单次实验结果。v2 相比 v1 的验证损失下降了 0.1433，但单次运行不足以证明多头结构在所有设置下都更优。V2 详细配置见 [`results/v2/metrics.md`](results/v2/metrics.md)，生成样本见 [`results/v2/sample.txt`](results/v2/sample.txt)。
+
 ## 3. Dataset | 数据集下载
 
 本项目使用 **Tiny Shakespeare** 数据集进行字符级语言模型训练。
@@ -97,15 +137,3 @@ v1 在 v0 的字符级语言模型基础上，引入 **Token Embedding、Positio
 **原始数据下载**
 
 [Download input.txt](https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt)
-
-
-## 4. Run | 运行方式
-
-安装项目依赖后，在项目根目录执行：
-
-```bash
-python versions/v0_bigram.py
-python versions/v1_single-head-attention.py
-```
-
-运行前请确认 `input.txt` 位于项目根目录，且脚本名称与本地仓库一致。实验样本与指标分别保存在 `results/v0/`、`results/v1/` 中。

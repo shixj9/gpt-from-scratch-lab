@@ -18,8 +18,8 @@
 
 | Metric | Value |
 |---|---|
-| Train Loss | 待填写 |
-| Validation Loss | 待填写 |
+| Train Loss | 2.4613 |
+| Validation Loss | 2.4897 |
 
 ## Generation Configuration
 

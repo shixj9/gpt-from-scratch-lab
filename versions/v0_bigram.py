@@ -144,3 +144,9 @@ result_path.mkdir(parents=True, exist_ok=True)
     generated_text,
     encoding="utf-8"
 )
+
+# 最终模型评估
+final_losses = estimate_loss()
+
+print(f"Final Train Loss: {final_losses['train']:.4f}")
+print(f"Final Validation Loss: {final_losses['val']:.4f}")
