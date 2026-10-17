@@ -104,8 +104,8 @@
 | v0 | Bigram | 2.4613 | 2.4897 |
 | v1 | Single-Head Self-Attention | 2.4156 | 2.4231 |
 | v2 | Multi-Head Self-Attention | 2.2213 | 2.2798 |
-| v3 | + FeedForward Network | 2.1397 | 2.2138 |
-| v4 | + Residual Connections & LayerNorm | 2.0782 | 2.1684 |
+| v3 | FeedForward Network | 2.1397 | 2.2138 |
+| v4 | Residual Connections & LayerNorm | 2.0782 | 2.1684 |
 | **v5** | **Multi-Layer Decoder-only GPT** | **1.0502** | **1.4896** |
 
 随着版本迭代，当前实验中的验证损失整体下降。需要注意，**v5 同时调整了模型规模、上下文长度和训练配置**，因此它与 v4 的差异不能归因于单一结构改动。
